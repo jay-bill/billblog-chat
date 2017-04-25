@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>jaybill聊天室</title>
+<link href="css/style.css" rel="stylesheet"type="text/css"/>
+</head>
+<body>
+	<!-- 聊天面板div -->
+	<div id="chat-div">
+		<!-- 显示面板 -->
+		<div></div>
+		<!-- 中间面板 -->
+		<div>jaybill聊天室</div>
+		<!-- 输入面板 -->
+		<div>
+			<textarea></textarea>
+			<div>
+				<a href="javascript:;" onclick="send()">发送</a>
+			</div>
+			<input id="uid" type="hidden" value="toid:2">
+			<input id="toid" type="hidden" value="uid:1">
+		</div>
+	</div>
+</body>
+<!-- sockJS所对应的库 -->
+<script src="http://cdn.sockjs.org/sockjs-0.3.min.js"></script>  
+<script src="http://cdn.bootcss.com/stomp.js/2.3.3/stomp.js"></script> 
+<script src="https://cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script>
+<script type="text/javascript">
+	var url = 'http://'+window.location.host+'/chatServer';
+	var socket = new SockJS(url);
+	var stomp = Stomp.over(socket);
+	//连接服务器，此时的服务器可以在任何地方响应
+	stomp.connect("guest","guest",handle);
+	//处理
+	function handle(){
+		send();
+		accept();
+	}
+	//发送
+	function send(){
+		var message = $("textarea").val();
+		if(message!=""){			
+			$("textarea").val("");
+			var uid = $("#uid").val();
+			var toid = $("#toid").val();
+			var payload =JSON.stringify({"uid":uid,"toid":toid,"message":message});
+			stomp.send("/app/receive",{},payload);
+			$("#chat-div>:first-child").append("<span style='color:blue;'>"+uid+"</span>");
+			$("#chat-div>:first-child").append("<p>"+message+"</p>");
+		}
+	}
+	//接收
+	function accept(){
+		var uid = $("#uid").val();
+		var toid = $("#toid").val();
+		stomp.subscribe("/topic/"+uid,function(message){
+			//解析JSON字符串
+			message = JSON.parse(message.body);
+			if(message.message!=""){
+				$("#chat-div>:first-child").append("<span style='float:right;color:blue;'>"+toid+"</span>");
+				$("#chat-div>:first-child").append("<div style='clear:both;'></div>");
+				$("#chat-div>:first-child").append("<p style='text-align:right;'>"+message.message+"</p>");
+			}
+		});
+	}
+</script>
+</html>
